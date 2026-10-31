@@ -2,6 +2,8 @@
 
 A compact Windows interface for PlayStation recompilation. Configure BIOS files and an output folder, choose discs or playlists, then build. This edition keeps its own settings and caches.
 
+![Workbench Studio main screen](docs/images/workbench-studio.jpg)
+
 Download [the Windows preview ZIP](dist/WorkbenchStudio-Windows-preview.zip) and its [SHA-256 checksum](dist/WorkbenchStudio-Windows-preview.zip.sha256), extract the complete folder, and open `Workbench Studio.cmd`. Git for Windows must be on PATH. The included Python runtime needs no separate installation. See [Quickstart](docs/QUICKSTART.txt).
 
 The main screen supports one game or a batch. Multi-disc games stay grouped by playlist. Matching SBI files can be selected with discs. Completed games appear directly in the chosen output folder. Completed cards are blue, failed cards red; current-game and total timers remain separate. Cancelling stops the current process tree and queued work.
@@ -32,5 +34,11 @@ python .\scripts\package.py
 ```
 
 The build expands the included launcher source for the exact ImGui/STB files. Packaging reuses the hash-checked CPython runtime from the committed distribution and combines it with `src/` and the rebuilt frontend. Python 3.11 or later runs the packaging script; the shipped application runtime remains CPython 3.14.3. Output goes under `build/package/`, leaving the checked archive unchanged. The build recipe is provided for maintenance; no byte-for-byte reproducibility claim is made for newly compiled binaries.
+
+## Build workflow and releases
+
+The primary organisation repository runs [Windows build](.github/workflows/windows.yml) on main pushes, pull requests and manual dispatch. It checks the pinned SDK hash, runs media-free controller/batch/delivery tests, rebuilds the native frontend, packages Studio, checks the extracted inventory and bundled runtime, then uploads the ZIP, checksum and verification record. Two optional upstream-source fixture tests skip when their separate source trees are absent. A hosted runner without hidden-window/OpenGL support records a pixel-check skip; its bundled Python bridge, shared SDL and package checks still run.
+
+The personal mirror keeps the same source; automatic builds run in the primary organisation repository. Workflow artifacts need a signed-in repository reader. Releases are prepared as drafts for manual publication; no workflow publishes them automatically.
 
 The project uses the [PolyForm Noncommercial licence](LICENSE). Third-party notices remain in `src/licenses`, `src/assets/licenses` and the included launcher source archive.

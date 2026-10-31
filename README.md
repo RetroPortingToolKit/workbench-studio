@@ -37,7 +37,7 @@ The build expands the included launcher source for the exact ImGui/STB files. Pa
 
 ## Build workflow and releases
 
-The primary organisation repository runs [Windows build](.github/workflows/windows.yml) on main pushes, pull requests and manual dispatch. It checks the pinned SDK hash, runs media-free controller/batch/delivery tests, rebuilds the native frontend, packages Studio, checks the extracted inventory and bundled runtime, then uploads the ZIP, checksum and verification record. Two optional upstream-source fixture tests skip when their separate source trees are absent. A hosted runner without hidden-window/OpenGL support records a pixel-check skip; its bundled Python bridge, shared SDL and package checks still run.
+The primary organisation repository runs [Windows build](.github/workflows/windows.yml) on main pushes, pull requests and manual dispatch. It checks the pinned SDK hash, runs media-free controller/batch/delivery tests, rebuilds the native frontend, packages Studio, checks the extracted inventory and bundled runtime, then uploads the ZIP, checksum and verification record. Two optional upstream-source fixture tests skip when their separate source trees are absent. A pinned software OpenGL fixture lets the hosted Windows runner render the actual hidden frontend. It is confined to the extracted test copy and is never included in the distribution.
 
 The personal mirror keeps the same source; automatic builds run in the primary organisation repository. Workflow artifacts need a signed-in repository reader. Releases are prepared as drafts for manual publication; no workflow publishes them automatically.
 

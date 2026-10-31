@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "core": {
+    "repository": "https://github.com/Alexbeav/psxrecomp",
+    "commit": "20ec7255304b7c20ea87f6e05577defa1b5e5948",
+    "tree": "9e90f1565cee3c8e10a398552a710deebcb5207c"
+  },
+  "launcher": {
+    "commit": "f998b0a77558d660dc35f507ee2e93eade0f12c6",
+    "tree": "d7f91341c857e724e79b9d9a178d707b50f7f7aa",
+    "source_package": {
+      "file": "launcher-source.zip",
+      "sha256": "406cf7de1b4c1afc1710b83e07243415cbe19f482493624fb3fd412265255e63"
+    },
+    "module_sha256": "5349989c011c1caadc8740cdb66a712510b659386fdb6d6367a5d6c1e0954731"
+  },
+  "shared_sdl": {
+    "version": "3.4.10",
+    "sha256": "858008a3756446937c8edc027aa8ac9347b404397c3f61274aa5569d88aef98a"
+  },
+  "input_media_bundled": false,
+  "settings_bundled": false,
+  "cache_bundled": false
+}

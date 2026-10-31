@@ -1,0 +1,37 @@
+{
+  "checked_distribution": {
+    "file": "dist/WorkbenchStudio-Windows-preview.zip",
+    "bytes": 26088790,
+    "sha256": "83fb1544efb1b28834c561b982705d59f3c6bb2481fd7395b46b99045db36f0b"
+  },
+  "python_runtime": {
+    "version": "3.14.3",
+    "provider": "runtime/ inside the checked distribution",
+    "license": "runtime/LICENSE.txt inside the checked distribution"
+  },
+  "native_sdk": {
+    "id": "cmake-clang-v1",
+    "version": "1.0.14",
+    "platform": "windows-x64",
+    "repository": "https://github.com/RetroPortingToolKit/RetroPorting-Toolchains",
+    "tag": "v1.0.14",
+    "file": "cmake-clang-v1-windows-x64.zip",
+    "sha256": "28da9742385e7ff875b3d9311e8ed89dbdc84f27b6ecba2bc0d0acc11f6d2b4d"
+  },
+  "launcher_source": {
+    "file": "launcher-source.zip",
+    "sha256": "406cf7de1b4c1afc1710b83e07243415cbe19f482493624fb3fd412265255e63"
+  },
+  "frontend_dependencies": {
+    "json_header": "native/vendor/nlohmann/json.hpp",
+    "json_sha256": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6",
+    "imgui_stb_provider": "src/versions/launcher-source.zip; native inputs match the checked frontend sources"
+  },
+  "source_files": {
+    "CMakeLists.txt": "3a8ecbfb1b144fa17289f4e0e7b81d687864f2984f515481cf1b6af50ce872b1",
+    "main.cpp": "6cfbc7f481b5992b8946506a2e0c691cfd1e870d1bff5262041fc9f3faea7a57",
+    "process_runner.cpp": "9ffc03c24567f42b00a16fcf7f6f2e8c534fa4c0f13a4d27c2d89c1f96e87232",
+    "process_runner.h": "c970c8535bae0f2d79fc53b03716d6fa872d44aa56f08d5abf1089730a300833",
+    "vendor/nlohmann/json.hpp": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6"
+  }
+}

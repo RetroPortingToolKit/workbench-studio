@@ -1,0 +1,1 @@
+Included supported Windows versions use the established module builder. Latest upstream source-only builds and Linux remain unqualified.

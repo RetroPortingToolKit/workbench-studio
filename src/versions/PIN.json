@@ -1,0 +1,32 @@
+{
+  "repo": "https://github.com/Alexbeav/psxrecomp",
+  "branch": "stage/pin-i",
+  "commit": "20ec7255304b7c20ea87f6e05577defa1b5e5948",
+  "tree": "9e90f1565cee3c8e10a398552a710deebcb5207c",
+  "boot_state_version": 16,
+  "recomp_ui_ref": "f998b0a77558d660dc35f507ee2e93eade0f12c6",
+  "toolchain_pin": "retcomm cmake-clang-v1 1.0.14 (llvm 22.1.8, llvm-mingw 20260616, cmake 3.31.12, ninja 1.13.2)",
+  "ui_host_contract": {
+    "host": {
+      "abi": "recomp_launcher_query_v1",
+      "provider": "recomp_launcher_module"
+    },
+    "module": {
+      "abi": "recomp_launcher_query_v1",
+      "provider": "recomp_launcher_module",
+      "sha256": "5349989c011c1caadc8740cdb66a712510b659386fdb6d6367a5d6c1e0954731",
+      "file": "recomp-launcher-v1.dll"
+    },
+    "shared_sdl": {
+      "version": "3.4.10",
+      "sha256": "858008a3756446937c8edc027aa8ac9347b404397c3f61274aa5569d88aef98a",
+      "file": "SDL3.dll"
+    },
+    "assets": {
+      "receipt_sha256": "00e9415eeaeb4a1aa0c73e341f1d5ec21c1e10557cb24336abb4729961f15350",
+      "receipt_file": "assets-receipt.json"
+    }
+  },
+  "name": "Supported Windows core and launcher",
+  "status": "test"
+}

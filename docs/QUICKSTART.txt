@@ -1,0 +1,10 @@
+Workbench Studio - Windows preview
+
+Extract the complete folder, then open Workbench Studio.cmd.
+Open Settings and choose your BIOS files and output folder. Choose game images or playlists, then BUILD. Add matching SBI files in the same selection.
+
+Git for Windows must be installed and available on PATH. Advanced source builds also require PowerShell 7 (pwsh); the included supported versions do not. Source and compiler downloads happen after BUILD. The included launcher source and module use the selected compatible core version. First build needs internet and several GB of free disk space.
+
+Completed games appear directly in the output folder. Logs and settings are under public-studio-data. Build caches are in %LOCALAPPDATA%\RPT. Thin games use its persistent compiler cache; keep that cache while using those games. Portable builds include their compiler and media. Startup checks are off by default.
+
+This is a Windows preview, not a qualification of every game or the latest upstream source. Linux is unqualified. Source versions remain selectable in Settings.

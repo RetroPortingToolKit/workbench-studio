@@ -1,0 +1,43 @@
+
+format_version = 1
+
+[pack]
+id = "cmake-clang-v1"
+version = "1.0.14"
+repo = "RetroPortingToolKit/RetroPorting-Toolchains"
+tag = "v1.0.14"
+[pack.assets]
+windows-x64 = { file = "cmake-clang-v1-windows-x64.zip", sha256 = "28da9742385e7ff875b3d9311e8ed89dbdc84f27b6ecba2bc0d0acc11f6d2b4d" }
+linux-x64   = { file = "cmake-clang-v1-linux-x64.zip",   sha256 = "597c8d343a3cf02ba6f6b2ae7cf6fe2fef125dde8feff62a144e8dd3da3d484e" }
+macos       = { file = "cmake-clang-v1-macos-universal.zip", sha256 = "9db2a9b6ede4162cb19850ee1a08d01147f3ea8bc9b2eefb3ffbdf8b20d389d7" }
+
+[python]
+minor = "3.12"
+
+[osxcross]
+commit = "27d21e4977c9751d01199c7a226a6faf494c3dd9"
+target_dir = "~/t108/osxcross-target"
+sdk = "MacOSX14.2.sdk"
+sdk_tarball_sha256 = "2a4a26e22ee2c92c6100d119d990fdb6f6eb4b98553efd241e46ab843642ac3c"
+darwin_target = "darwin23.2"
+host_clang_dir = "~/t108/hostclang-21/bin"
+host_clang = "21.1.8"
+
+[hosts.eagle]
+os = "windows"
+requires = ["pack", "python"]
+[hosts.pegasus]
+os = "windows"
+requires = ["python"]
+[hosts.pegasus-wsl]
+os = "linux"
+requires = ["python", "osxcross"]
+[hosts.athena-rocky]
+os = "linux"
+requires = ["pack", "python"]
+[hosts.eagle-wsl]
+os = "linux"
+requires = ["python"]
+[hosts.pacifica]
+os = "macos"
+requires = []  # test station only: runs binaries, builds nothing

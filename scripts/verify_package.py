@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -59,11 +60,17 @@ def main():
         ctypes.windll.kernel32.FreeLibrary.argtypes = [ctypes.c_void_p]
         assert ctypes.windll.kernel32.FreeLibrary(sdl._handle), 'Could not release SDL provider'
         del sdl
+        graphics = os.environ.get('STUDIO_TEST_OPENGL_DIR')
+        if graphics:
+            # Test fixture only: the original ZIP is never modified or repacked.
+            for library in Path(graphics).glob('*.dll'):
+                assert not (app/library.name).exists(), 'Graphics fixture would replace a product file'
+                shutil.copy2(library,app/library.name)
         preview = run([str(app/'Workbench Studio.exe'),'--preview',str(root/'native.png'),'--data-root',str(root/'preview-data')],app,env)
         if preview.returncode == 0:
             assert (root/'native.png').is_file(), 'Native preview missing'
             native = 'hidden preview rendered'
-        elif os.environ.get('GITHUB_ACTIONS') == 'true' and preview.returncode in {3,4}:
+        elif not graphics and os.environ.get('GITHUB_ACTIONS') == 'true' and preview.returncode in {3,4}:
             native = 'SKIP pixels: runner hidden-window/OpenGL setup unavailable (exit '+str(preview.returncode)+'); SDL and bundled bridge passed'
             print(native)
         else:
@@ -71,6 +78,7 @@ def main():
         assert not (root/'profile').exists(), 'Native startup created payload cache'
         result = dict(status='pass',sha256=actual,inventory_files=len(inventory),blank_settings=True,
                       bundled_python_bridge=True,shared_sdl_version=3004010,native=native,
+                      graphics_fixture_only=bool(graphics),
                       source_payload_cache_created=False,media_bundled=False)
         (archive.parent/'verification.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
         print(json.dumps(result,indent=2))

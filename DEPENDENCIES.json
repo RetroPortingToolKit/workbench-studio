@@ -33,5 +33,13 @@
     "process_runner.cpp": "9ffc03c24567f42b00a16fcf7f6f2e8c534fa4c0f13a4d27c2d89c1f96e87232",
     "process_runner.h": "c970c8535bae0f2d79fc53b03716d6fa872d44aa56f08d5abf1089730a300833",
     "vendor/nlohmann/json.hpp": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6"
+  },
+  "ci_graphics_fixture": {
+    "name": "Mesa software OpenGL Windows x64 test fixture",
+    "version": "26.2.5",
+    "url": "https://github.com/pal1000/mesa-dist-win/releases/download/26.2.5/mesa3d-26.2.5-release-msvc.7z",
+    "bytes": 70248244,
+    "sha256": "997123ef4ce8896204ab912d5b54f19372c487ff9835bcefafa2fca23b8953c2",
+    "scope": "CI extracted test copy only; never shipped in Studio ZIP"
   }
 }

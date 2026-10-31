@@ -51,6 +51,22 @@ jobs:
         run: |
           & "$env:STUDIO_SDK/python/python.exe" -X utf8 -B scripts/package.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Prepare software OpenGL test fixture
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $fixture = (Get-Content DEPENDENCIES.json -Raw | ConvertFrom-Json).ci_graphics_fixture
+          Invoke-WebRequest -Uri $fixture.url -OutFile .tools/graphics.7z
+          if ((Get-FileHash .tools/graphics.7z -Algorithm SHA256).Hash.ToLowerInvariant() -ne $fixture.sha256) { throw 'Graphics fixture checksum mismatch' }
+          & 7z x .tools/graphics.7z '-o.tools/graphics' -y | Out-Null
+          if ($LASTEXITCODE) { throw 'Graphics fixture extraction failed' }
+          $gl = Get-ChildItem .tools/graphics -Recurse -Filter opengl32.dll | Where-Object {
+            $bytes = [IO.File]::ReadAllBytes($_.FullName)
+            $pe = [BitConverter]::ToInt32($bytes, 0x3c)
+            [BitConverter]::ToUInt16($bytes, $pe + 4) -eq 0x8664
+          } | Select-Object -First 1
+          if (-not $gl) { throw 'Graphics fixture has no Windows x64 OpenGL provider' }
+          "STUDIO_TEST_OPENGL_DIR=$($gl.Directory.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          'GALLIUM_DRIVER=llvmpipe' | Out-File $env:GITHUB_ENV -Append -Encoding utf8
       - name: Verify extracted package and runtime
         run: |
           & "$env:STUDIO_SDK/python/python.exe" -X utf8 -B scripts/verify_package.py build/package/WorkbenchStudio-Windows-preview.zip

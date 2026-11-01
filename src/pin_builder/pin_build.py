@@ -844,7 +844,7 @@ def write_runtime_media(config, product, discs, bios, serials, mode, fast_boot=N
     def reference(path):
         return Path(os.path.relpath(path, product)).as_posix() if mode == 'portable' else str(path)
     disc_refs = [reference(p) for p in discs]
-    bios_ref = reference(bios)
+    bios_ref = reference(bios) if bios else ""
     runtime_config = product / 'game.toml'
     shutil.copy2(config, runtime_config)
     set_game_media(runtime_config, disc_refs, serials)

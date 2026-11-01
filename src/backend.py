@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import threading
@@ -105,10 +106,28 @@ def copy_source(source: Path, destination: Path):
             elif path.is_symlink() or (hasattr(path, 'is_junction') and path.is_junction()):
                 raise ValueError(f'Source contains a symbolic link: {path}; supply regular files')
         return omitted
-    shutil.copytree(source, destination, ignore=ignore)
+
+    def copy_writable(original, target):
+        shutil.copy2(original, target)
+        Path(target).chmod(Path(target).stat().st_mode | stat.S_IWUSR)
+        return target
+    shutil.copytree(source, destination, ignore=ignore, copy_function=copy_writable)
     members = {p.relative_to(destination).as_posix(): sha256(p) for p in sorted(destination.rglob('*')) if p.is_file()}
     identity = hashlib.sha256(json.dumps(members, sort_keys=True).encode()).hexdigest()
     return {'content_sha256': identity, 'files': members, 'snapshot_excludes': ['.git', '__pycache__']}
+
+def stage_source_runtime(config, product, discs, bios, serials, portable, skip_bios):
+    from pin_builder import pin_build
+    mode = 'portable' if portable else 'thin'
+    receipt = {'inputs': []}
+    if bios:
+        staged, staged_bios = pin_build.runtime_media(discs, bios, product, mode, receipt)
+    else:
+        staged = [str(pin_build.stage_disc(disc, product / 'inputs' / f'disc-{i}', receipt)) for i, disc in enumerate(discs, 1)] if portable else list(map(str, discs))
+        staged_bios = ''
+    pin_build.write_runtime_media(config, product, staged, staged_bios, serials, mode, fast_boot=True if skip_bios else None)
+    pin_build.check_inputs(receipt)
+    return receipt
 
 def snapshot_source(kind, ref, custom, cache, destination, runner):
     url = CORE_URL if kind == 'core' else UI_URL
@@ -320,8 +339,13 @@ def build(options, data_root, runner, *, prepared_sources=None, prepared_runtime
         rebuild = [sys.executable, cli, 'rebuild', '--config', title / 'game.toml', '--project-root', title, '--build-dir', 'build-release', '--force-pgo' if options.pgo else '--no-pgo', '--pgo-mute', '--pgo-hide-video', '--cmake-extra=-DPSX_DEBUG_TOOLS=' + ('ON' if options.diagnostics else 'OFF')]
         rebuild += ['--cmake-extra=-DPSX_LAUNCHER_MODULE=ON', '--cmake-extra=-DPSX_STATIC_RUNTIME=OFF', '--cmake-extra=-DRECOMP_LAUNCHER_MODULE_FILE=' + prepared_runtime['module'], '--cmake-extra=-DSDL3_DIR=' + str(Path(prepared_runtime['sdl_prefix']) / 'lib' / 'cmake' / 'SDL3')]
         import compiler_options
-        rebuild += compiler_options.arguments(options.compiler_optimization, options.lto)
+        rebuild += compiler_options.arguments(options.compiler_optimization, options.lto, source=True)
         runner.run(rebuild, title, env=env)
+        players = list((title / 'build-release').glob('*.exe'))
+        if len(players) != 1:
+            raise RuntimeError('Expected one source-built game executable')
+        record['module_compatibility'] = runner.run([players[0], '--launcher-module-check'], title / 'build-release', env=env)
+        record['runtime_media'] = stage_source_runtime(title / 'game.toml', title / 'build-release', discs, options.bios, [probe.get('serial', '') for probe in record['disc_identity']], options.portable, options.skip_bios)
         record['compiler_options_verified'] = compiler_options.verify(title / 'build-release', options.compiler_optimization, options.lto)
         record.update(state='completed', project=str(title), output=str(title / 'build-release'))
         return record

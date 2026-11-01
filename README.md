@@ -12,7 +12,7 @@ Settings holds BIOS files, output location, source versions and Advanced options
 
 The included supported core version is fetched from its public repository. The matching launcher build sources, module and SDL are included with checksums and licence notices. That launcher revision is supplied locally rather than fetched from an unavailable remote revision. See [version identities](docs/VERSIONS.json) and [dependency inputs](DEPENDENCIES.json).
 
-This is a Windows preview. The supported version pair completed a real game build and bounded headless startup. Latest upstream source-only builds and Linux remain unqualified; Advanced source-only builds also need PowerShell 7 (`pwsh`). See [validation limits](docs/VALIDATION.md).
+This is a Windows preview. The supported version pair completed a real game build and bounded headless startup. A separate modern local-source pair also completed a portable build and a bounded recording/playback check. Arbitrary online source versions and Linux remain unqualified; Advanced source-only builds also need PowerShell 7 (`pwsh`). See [validation limits](docs/VALIDATION.md).
 
 Thin outputs depend on the persistent compiler cache under `%LOCALAPPDATA%\RPT\compilers`; keep it while using those games. Portable outputs include their compiler and selected media. Neither this repository nor its downloadable Studio archive contains game discs, BIOS images, saves or personal settings.
 

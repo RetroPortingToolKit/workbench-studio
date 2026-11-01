@@ -10,6 +10,9 @@ import time
 import unittest
 from unittest import mock
 import os
+import stat
+import tomllib
+import compiler_options
 
 APP = Path(__file__).resolve().parents[1] / 'src'
 
@@ -52,6 +55,72 @@ def synthetic_disc(root):
 
 
 class BuilderChecks(unittest.TestCase):
+    def test_source_product_media_survives_move_without_source_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cue = synthetic_disc(root)
+            cue.with_suffix('.sbi').write_bytes(b'SBI fixture')
+            bios = root / 'bios.bin'
+            bios.write_bytes(b'BIOS fixture')
+            config = root / 'game.toml'
+            config.write_text('[game]\ndisc = "old.cue"\nserial = "SLUS-00001"\n')
+            product = root / 'payload'
+            product.mkdir()
+            backend.stage_source_runtime(config, product, [cue], bios, ['SLUS-00001'], True, False)
+            moved = root / 'moved'
+            product.rename(moved)
+            game = tomllib.loads((moved / 'game.toml').read_text())['game']
+            selected = moved / game['disc']
+            self.assertTrue(selected.is_file())
+            self.assertEqual((selected.parent / 'track.bin').read_bytes(), (root / 'track.bin').read_bytes())
+            self.assertEqual(selected.with_suffix('.sbi').read_bytes(), b'SBI fixture')
+            self.assertEqual((moved / (moved / 'bios.cfg').read_text().strip()).read_bytes(), b'BIOS fixture')
+            for filename in ('game.toml', 'disc.cfg', 'bios.cfg', 'settings.toml'):
+                self.assertNotIn(str(root), (moved / filename).read_text())
+
+    def test_source_product_without_bios_does_not_reference_a_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cue = synthetic_disc(root)
+            config = root / 'game.toml'
+            config.write_text('[game]\ndisc = "old.cue"\n')
+            product = root / 'payload'
+            product.mkdir()
+            backend.stage_source_runtime(config, product, [cue], '', ['SLUS-00001'], True, True)
+            settings = tomllib.loads((product / 'settings.toml').read_text())
+            self.assertEqual(settings['bios']['path'], '')
+            self.assertTrue(settings['video']['fast_boot'])
+            self.assertEqual((product / 'bios.cfg').read_text().strip(), '')
+
+    def test_source_compiler_choices_use_cmake_ipo_contract(self):
+        for lto in (False, True):
+            flags = compiler_options.arguments('fast', lto, source=True)
+            self.assertNotIn('--no-lto', flags)
+            self.assertIn('--cmake-extra=-DPSX_RUNTIME_IPO=' + ('ON' if lto else 'OFF'), flags)
+        self.assertIn('--no-lto', compiler_options.arguments('fast', False))
+
+    def test_readonly_source_stays_readonly_but_snapshot_can_be_restaged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / 'custom'
+            source.mkdir()
+            original = source / 'bios.bin'
+            original.write_bytes(b'private fixture')
+            original.chmod(stat.S_IREAD)
+            try:
+                identity = backend.copy_source(source, root / 'snapshot')
+                copied = root / 'snapshot/bios.bin'
+                try:
+                    self.assertTrue(copied.stat().st_mode & stat.S_IWRITE)
+                    copied.write_bytes(b'replacement fixture')
+                    self.assertEqual(original.read_bytes(), b'private fixture')
+                    self.assertFalse(original.stat().st_mode & stat.S_IWRITE)
+                    self.assertEqual(identity['files']['bios.bin'], backend.sha256(original))
+                finally:
+                    copied.chmod(stat.S_IREAD | stat.S_IWRITE)
+            finally:
+                original.chmod(stat.S_IREAD | stat.S_IWRITE)
+
     @unittest.skipUnless((APP.parent / 'toolchain_pack.py').is_file(), 'Optional upstream toolchain helper is not bundled')
     def test_project_only_toolchain_never_publishes_global_environment(self):
         path = Path(__file__).parents[1] / "toolchain_pack.py"

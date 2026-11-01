@@ -1,8 +1,8 @@
 {
   "checked_distribution": {
     "file": "dist/WorkbenchStudio-Windows-preview.zip",
-    "bytes": 26088790,
-    "sha256": "83fb1544efb1b28834c561b982705d59f3c6bb2481fd7395b46b99045db36f0b"
+    "bytes": 26090408,
+    "sha256": "a0007f4897d3dc3d7147c24039475bfe0318c4b19ccd80549bd8bc8ddbffe143"
   },
   "python_runtime": {
     "version": "3.14.3",

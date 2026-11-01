@@ -80,7 +80,7 @@ def prepare(pair, batch, cache, runner):
     env['RETCOMM_TOOLCHAIN_DIR'] = str(binary)
     env['PATH'] = str(binary) + os.pathsep + env.get('PATH', '')
     sdl, provider = shared_sdl(core, cache, binary, runner, env)
-    identity = hashlib.sha256(json.dumps({'core': core_record['content_sha256'], 'ui': ui_record['content_sha256'], 'provider': provider['sha256'], 'toolchain': toolchain['metadata']}, sort_keys=True).encode()).hexdigest()
+    identity = hashlib.sha256(json.dumps({'module_recipe': 2, 'core': core_record['content_sha256'], 'ui': ui_record['content_sha256'], 'provider': provider['sha256'], 'toolchain': toolchain['metadata']}, sort_keys=True).encode()).hexdigest()
     root = cache / 'modules' / identity
     root.mkdir(parents=True, exist_ok=True)
     module = root / 'recomp-launcher-v2.dll'
@@ -95,8 +95,8 @@ def prepare(pair, batch, cache, runner):
         for generated, supplied in [('records-check.inc', 'launcher_module_v2_records_witness.inc'), ('boundary-check.inc', 'launcher_module_v2_boundary_witness.inc')]:
             if (root / generated).read_bytes().replace(b'\r\n', b'\n') != (ui / 'src' / 'common' / supplied).read_bytes().replace(b'\r\n', b'\n'):
                 raise ValueError('Launcher source and generated boundary witnesses disagree')
-        runner.run([binary / 'cmake.exe', '-S', ui, '-B', root, '-G', 'Ninja', f"-DCMAKE_C_COMPILER={binary / 'clang.exe'}", f"-DCMAKE_CXX_COMPILER={binary / 'clang++.exe'}", f"-DCMAKE_MAKE_PROGRAM={binary / 'ninja.exe'}", f"-DSDL3_DIR={sdl / 'lib' / 'cmake' / 'SDL3'}", '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_TESTING=OFF', '-DRECOMP_UI_BUILD_LAUNCHER_MODULE=ON', '-DRECOMP_UI_ENABLE_MODS=ON', f'-DRECOMP_LAUNCHER_V2_BUILD_IDENTITY={identity}'], batch, env=env)
+        runner.run([binary / 'cmake.exe', '-S', ui, '-B', root, '-G', 'Ninja', f"-DCMAKE_C_COMPILER={binary / 'clang.exe'}", f"-DCMAKE_CXX_COMPILER={binary / 'clang++.exe'}", f"-DCMAKE_MAKE_PROGRAM={binary / 'ninja.exe'}", f"-DSDL3_DIR={sdl / 'lib' / 'cmake' / 'SDL3'}", '-DCMAKE_BUILD_TYPE=Release', '-DBUILD_TESTING=OFF', '-DRECOMP_UI_BUILD_LAUNCHER_MODULE=ON', '-DRECOMP_UI_ENABLE_MODS=ON', f'-DRECOMP_UI_PSXRECOMP_ROOT={core}', f'-DRECOMP_LAUNCHER_V2_BUILD_IDENTITY={identity}'], batch, env=env)
         runner.run([binary / 'cmake.exe', '--build', root, '--parallel', '1', '--target', 'recomp-launcher-module'], batch, env=env)
-        receipt = {'identity': identity, 'sha256': digest(module), 'shared_sdl': provider, 'toolchain': toolchain['metadata'], 'abi_major': 2, 'origin': 'built-from-selected-pair'}
+        receipt = {'identity': identity, 'sha256': digest(module), 'shared_sdl': provider, 'toolchain': toolchain['metadata'], 'abi_major': 2, 'module_recipe': 2, 'origin': 'built-from-selected-pair'}
         module_record.write_text(json.dumps(receipt, indent=2), encoding='utf-8')
     return {'environment': env, 'module': str(module), 'sdl_prefix': str(sdl), 'receipt': receipt}

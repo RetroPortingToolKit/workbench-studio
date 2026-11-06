@@ -66,6 +66,11 @@ struct Host {
                     {"multiple", multiple}};
     if (action == "save")
       request["settings"] = settings;
+    if (action == "build") {
+      request["player_overrides"] = json::array();
+      for (const auto &g : games)
+        request["player_overrides"].push_back(g.value("player_override", json(nullptr)));
+    }
     fs::create_directories(data);
     fs::path input = data / "native-request.json";
     std::ofstream(input) << request.dump(2);
@@ -168,6 +173,8 @@ struct Host {
         settings = e["settings"];
       else if (kind == "selection") {
         games = e["games"];
+        for (auto &game : games)
+          game["auto_players"] = game.value("players", json(nullptr));
         art.clear();
         selected = 0;
         error.clear();
@@ -190,6 +197,11 @@ struct Host {
         status = "Needs attention";
       } else if (kind == "batch_started" || kind == "game_started" ||
                  kind == "game_finished" || kind == "batch_finished") {
+        for (auto &row : e["games"]) {
+          int index = row.value("id", -1);
+          if (index >= 0 && index < (int)games.size())
+            row["auto_players"] = games[index].value("auto_players", json(nullptr));
+        }
         games = e["games"];
         total = e.value("total_seconds", total);
         if (kind == "game_started") {
@@ -624,6 +636,22 @@ int main(int argc, char **argv) {
           d->AddText({pos.x + 72, pos.y + 43}, color(149, 173, 203),
                      detail.c_str());
           ImGui::PopStyleColor(2);
+          int override_count = g.value("player_override", json(nullptr)).is_null()
+                                   ? 0 : g["player_override"].get<int>();
+          ImGui::BeginDisabled(h.busy);
+          ImGui::SetNextItemWidth(100);
+          if (ImGui::Combo("Players", &override_count,
+                           "Auto\0" "1\0" "2\0" "3\0" "4\0" "5\0" "6\0" "7\0" "8\0")) {
+            g["player_override"] = override_count ? json(override_count) : json(nullptr);
+            g["players"] = override_count ? json(override_count)
+                : g.value("auto_players", json(nullptr));
+          }
+          if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Auto uses disc metadata. Choose 1-8 to override it for this build.");
+          ImGui::EndDisabled();
+          if (override_count == 0 && (!g.contains("players") || g["players"].is_null()))
+            ImGui::TextWrapped("Player count unavailable. Choose 1-8 above, or reselect files to retry Auto.");
+          ImGui::Spacing();
           ImGui::PopID();
         }
       ImGui::EndChild();
@@ -679,6 +707,9 @@ int main(int argc, char **argv) {
                        fs::is_regular_file(fs::u8path(path.get<std::string>()));
       bool valid = !h.games.empty() &&
                    !h.settings.value("output_folder", "").empty() && bios_valid;
+      for (const auto &game : h.games)
+        valid = valid && game.contains("players") && game["players"].is_number_integer()
+                && game["players"].get<int>() >= 1 && game["players"].get<int>() <= 8;
       if (ImGui::Button(h.show_logs ? "Hide build log" : "Build log",
                         {130, 48}))
         h.show_logs = !h.show_logs;

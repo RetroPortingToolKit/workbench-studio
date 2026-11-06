@@ -198,6 +198,8 @@ def batch(jobs, preferences, data_root, runner):
                 bios_candidates.write_text(json.dumps(preferences.bios_files), encoding='utf-8')
                 argv = [python, '-u', '-B', Path(__file__).with_name('pin_entry.py'), 'build', '--pin', selected_pin, '--bios', bios, '--bios-candidates', bios_candidates, '--output', output, '--source-repo', core, '--ui-repo', ui, '--toolchain-pin', Path(__file__).with_name('toolchain-pin.toml'), '--toolchain', toolchain, '--overlay-archives', downloads, '--kits-root', catalog, '--run-root', work_root, '--input-mode', 'portable' if preferences.portable else 'thin', '--platform', 'windows-x64']
                 argv += ['--players', str(game.players)]
+                if game.player_override is not None:
+                    argv += ['--override-players']
                 if ui_file:
                     argv += ['--ui', ui_file]
                 if preferences.skip_bios:

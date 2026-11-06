@@ -11,6 +11,8 @@ class GameJob:
     sbi: dict[Path, Path] = field(default_factory=dict)
     players: int | None = None
     player_metadata: dict = field(default_factory=dict)
+    player_override: int | None = None
+    player_error: str = ''
 
 def validate_players(players):
     if type(players) is not int or not 1 <= players <= 8:
@@ -38,7 +40,7 @@ def playlist_discs(path):
         raise ValueError(f'Playlist contains no discs: {path.name}')
     return discs
 
-def group_files(files, multiple_games=False):
+def group_files(files, multiple_games=False, player_overrides=None):
     selected = list(dict.fromkeys((Path(p).expanduser().resolve() for p in files)))
     if not selected:
         return []
@@ -82,4 +84,9 @@ def group_files(files, multiple_games=False):
         if disc in job.sbi:
             raise ValueError(f'More than one SBI selected for {disc.name}')
         job.sbi[disc] = sbi
+    if player_overrides is not None:
+        if not isinstance(player_overrides, list) or len(player_overrides) != len(jobs):
+            raise ValueError('Choose one player override per game (Auto or 1-8)')
+        for game, override in zip(jobs, player_overrides):
+            game.player_override = None if override is None else validate_players(override)
     return jobs

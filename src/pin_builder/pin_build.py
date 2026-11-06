@@ -1260,13 +1260,25 @@ def scaffold_kit(output, facts, config, bios_stem, players, receipt):
     record_inputs([output / name for name in names], receipt)
     receipt['scaffold'] = {'kind': 'census', 'files': list(names), 'gen_marker': marker, 'exe_name': exe_name, 'bios_stem': bios_stem, 'players': int(players), 'netplay': netplay, 'setup_wizard': setup}
 
-def operator_players(args):
+def operator_players(args, kit=None):
+    if kit is not None and not getattr(args, 'override_players', False):
+        return declared_players(kit)
     players = getattr(args, 'players', None)
+    if getattr(args, 'override_players', False) and players is None:
+        raise BuildStop('--override-players requires an explicit --players count.')
     if players is None:
         return 1
     if isinstance(players, bool) or not isinstance(players, int) or (not 1 <= players <= 8):
         raise BuildStop(f'--players must be a whole number from 1 to 8 (got {players!r}).')
     return players
+
+def override_kit_player_capacity(output, players):
+    path = Path(output) / 'CMakeLists.txt'
+    text = path.read_text(encoding='utf-8-sig')
+    updated, count = re.subn(r'(?m)^(\s*MAX_PLAYERS\s+)([^\s)#]+)', lambda match: match[1] + str(players), text)
+    if count != 1:
+        raise BuildStop('This kit has no single MAX_PLAYERS declaration to override. Use an automatic scaffold or review its build recipe.')
+    path.write_text(updated, encoding='utf-8')
 
 def set_game_media(path, discs, serials):
     text = path.read_text(encoding='utf-8-sig')
@@ -1807,9 +1819,11 @@ def _build_workspace(args):
                         raise BuildStop(f'Kit {section}.{key} escapes the new output. Correct the kit configuration.')
             if output_kind == 'private':
                 set_game_media(config, list(map(str, discs)), serials)
-            players = declared_players(kit)
+            players = operator_players(args, kit)
             if players is not None:
                 set_game_players(config, players)
+                if getattr(args, 'override_players', False):
+                    override_kit_player_capacity(output, players)
                 receipt['declared_players'] = players
         if output_kind != 'setup' or receipt['automated_tests']['windows-x64']['selected']:
             profile = sections.get('recompiler', {}).get('bios_config') or 'SCPH1001.toml'
@@ -1978,6 +1992,7 @@ def add_commands(commands):
     parser.add_argument('--kits-root', type=Path, action='append')
     parser.add_argument('--allow-scaffold', action='store_true', help='When no reviewed kit matches, build an unreviewed census scaffold instead of stopping.')
     parser.add_argument('--players', type=int, help='Reviewed player count for a scaffold build (1-8). Two or more turns netplay on. A kit states its own count, so this is ignored when a kit matches.')
+    parser.add_argument('--override-players', action='store_true', help='Apply the explicit --players count even when a source kit matches.')
     setting = ' Studio setting {} (Workbench Studio > Settings).'
     package = input_default(PACKAGE_ENV, PACKAGE)
     parser.add_argument('--source-repo', type=Path, default=input_default(SOURCE_ENV, SOURCE), help=f'The psxrecomp clone. Default: {SOURCE_ENV}, then the' + setting.format('source_repo'))

@@ -27,11 +27,14 @@ def main():
         settings.save(root, preferences)
         emit(dict(event='settings', settings=asdict(preferences)))
         return
-    jobs = group_files(request['files'], request.get('multiple', False))
+    jobs = group_files(request['files'], request.get('multiple', False), request.get('player_overrides'))
     if action == 'selection':
         import player_metadata
-        player_metadata.identify(jobs, root)
-        emit(dict(event='selection', games=[dict(id=i, name=g.name, discs=[str(p) for p in g.discs], players=g.players, player_metadata=g.player_metadata, state='queued', elapsed_seconds=0) for i, g in enumerate(jobs)]))
+        player_metadata.identify(jobs, root, allow_unknown=True)
+        for game in jobs:
+            if game.player_error:
+                emit(dict(event='log', text=game.player_error))
+        emit(dict(event='selection', games=[dict(id=i, name=g.name, discs=[str(p) for p in g.discs], players=g.players, player_metadata=g.player_metadata, player_override=g.player_override, player_error=g.player_error, state='queued', elapsed_seconds=0) for i, g in enumerate(jobs)]))
         return
     if action == 'artwork':
         import artwork

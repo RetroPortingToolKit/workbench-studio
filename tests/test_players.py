@@ -29,11 +29,64 @@ def authored_disc(root, serial):
     return cue
 
 
-def page(serial, players):
-    return f'<table><tr><td>Serial Number(s)</td><td>{serial}</td></tr><tr><td>Number Of Players</td><td>&nbsp;{players}</td></tr></table>'
+def page(serial, players, multitap='No'):
+    return f'<table><tr><td>Serial Number(s)</td><td>{serial}</td></tr><tr><td>Number Of Players</td><td>&nbsp;{players}</td></tr><tr><td>Multi-Tap Function Compatible</td><td>{multitap}</td></tr></table>'
 
 
 class PlayerChecks(unittest.TestCase):
+    def test_zero_padded_page_and_multitap_maximum(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(metadata, 'CATALOG', Path(tmp) / 'empty.json'):
+            root = Path(tmp)
+            metadata.CATALOG.write_text('{}')
+            text = page('SCUS-94263', '1 or 2 Players').replace('</tr>', '</tr>\n')
+            raw = b'\xff\xfe' + text.encode('utf-16-le').replace(b'\n\x00', b'\x00\n')
+            with mock.patch.object(metadata.urllib.request, 'urlopen', return_value=io.BytesIO(raw)) as fetch:
+                self.assertEqual(metadata.resolve('SCUS-94263', root)['players'], 2)
+                fetch.assert_called_once()
+            self.assertEqual(metadata.parse_page('SCES-01312', page('SCES-01312', '1 or 2 Players', 'Yes ( 1 to 5 Players )')), 5)
+            self.assertEqual(metadata.parse_page('SLES-00785', page('SLES-00785', '1-4 Players', 'Yes ( 1 to 4 Players )')), 4)
+            # A pre-fix two-pad cache must not hide the multitap maximum.
+            cache = root / 'player-metadata/SCES-01312.json'
+            cache.write_text(json.dumps(dict(serial='SCES-01312', players=2, source='https://psxdatacenter.com/games/SCES-01312.html')))
+            with mock.patch.object(metadata.urllib.request, 'urlopen', return_value=io.BytesIO(page('SCES-01312', '1 or 2 Players', 'Yes ( 1 to 5 Players )').encode())):
+                self.assertEqual(metadata.resolve('SCES-01312', root)['players'], 5)
+
+    def test_unknown_metadata_allows_explicit_override_without_caching_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cue = authored_disc(root / 'unknown', 'SCUS-94263')
+            with mock.patch.object(metadata, 'resolve', side_effect=ValueError('metadata unavailable')) as resolve:
+                jobs = selection.group_files([cue])
+                metadata.identify(jobs, root, allow_unknown=True)
+                self.assertIsNone(jobs[0].players)
+                self.assertIn('unavailable', jobs[0].player_error)
+                resolve.reset_mock()
+                jobs = selection.group_files([cue], player_overrides=[4])
+                metadata.identify(jobs, root)
+                resolve.assert_not_called()
+                self.assertEqual(jobs[0].players, 4)
+                self.assertEqual(jobs[0].player_metadata['source'], 'manual override')
+                self.assertFalse((root / 'player-metadata').exists())
+            for invalid in ([0], [9], [True], ['2'], []):
+                with self.assertRaises(ValueError):
+                    selection.group_files([cue], player_overrides=invalid)
+
+    def test_manual_override_updates_matching_kit_capacity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            kit = Path(tmp)
+            (kit / 'project-manifest.toml').write_text('[project]\nplayers=2\n')
+            recipe = kit / 'CMakeLists.txt'
+            recipe.write_text('psxrecomp_add_game_runtime(game\n    MAX_PLAYERS 2\n)\n')
+            args = argparse.Namespace(players=5, override_players=False)
+            self.assertEqual(pb.operator_players(args, kit), 2)
+            args.override_players = True
+            self.assertEqual(pb.operator_players(args, kit), 5)
+            pb.override_kit_player_capacity(kit, 5)
+            self.assertIn('MAX_PLAYERS 5', recipe.read_text())
+            args.players = None
+            with self.assertRaises(pb.BuildStop):
+                pb.operator_players(args, kit)
+
     def test_metadata_uses_serial_and_reports_single_and_two_player_games(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -71,6 +124,9 @@ class PlayerChecks(unittest.TestCase):
                 fetch.assert_called_once_with('https://psxdatacenter.com/games/SLUS-00001.html', timeout=10)
             with mock.patch.object(metadata.urllib.request, 'urlopen', side_effect=AssertionError('cache bypassed')):
                 self.assertEqual(metadata.resolve('SLUS-00001', root), record)
+            (root / 'player-metadata/SLUS-00001.json').write_text('[]')
+            with mock.patch.object(metadata.urllib.request, 'urlopen', return_value=io.BytesIO(page('SLUS-00001', '1 to 4 Players').encode())):
+                self.assertEqual(metadata.resolve('SLUS-00001', root)['players'], 4)
             for count in ('1 or 2 Players', '1-2 Players', '1 Player'):
                 self.assertIn(metadata.parse_page('SLUS-00001', page('SLUS-00001', count)), (1, 2))
             for text in (page('SLUS-99999', '2 Players'), page('SLUS-00001', 'Unknown'), page('SLUS-00001', '9 Players')):
@@ -92,6 +148,33 @@ class PlayerChecks(unittest.TestCase):
             self.assertEqual(game['players'], 2)
             self.assertEqual(game['player_metadata']['serial'], 'SLUS-00679')
 
+    def test_native_unknown_game_remains_selectable_and_build_accepts_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cue = authored_disc(root / 'unknown', 'SCUS-94263')
+            request = root / 'request.json'
+            value = dict(action='selection', data_root=str(root / 'data'), files=[str(cue)])
+            request.write_text(json.dumps(value))
+            with mock.patch('sys.argv', ['native_bridge.py', str(request)]), \
+                 mock.patch.object(metadata, 'resolve', side_effect=ValueError('metadata unavailable')) as resolve, \
+                 mock.patch.object(native_bridge, 'emit') as emit, mock.patch.dict(os.environ, {}, clear=False):
+                native_bridge.main()
+                game = emit.call_args.args[0]['games'][0]
+                self.assertIsNone(game['players'])
+                self.assertIsNone(game['player_override'])
+                self.assertIn('unavailable', game['player_error'])
+                value.update(action='build', player_overrides=[5])
+                request.write_text(json.dumps(value))
+                resolve.reset_mock()
+                def build(jobs, prefs, data, runner):
+                    metadata.identify(jobs, data)
+                    self.assertEqual(jobs[0].players, 5)
+                    self.assertEqual(jobs[0].player_metadata['source'], 'manual override')
+                    return {'state': 'completed'}
+                with mock.patch.object(native_bridge, 'build_batch', side_effect=build):
+                    native_bridge.main()
+                resolve.assert_not_called()
+
     def test_supported_batch_passes_identified_count_to_real_parser_and_scaffold(self):
         with tempfile.TemporaryDirectory() as tmp, ExitStack() as stack:
             root = Path(tmp)
@@ -110,6 +193,7 @@ class PlayerChecks(unittest.TestCase):
             bios.write_bytes(b'fixture BIOS')
             prefs = settings.Settings(core_pin=str(pin), output_folder=str(root / 'out'), skip_bios=True, bios_files=[str(bios)])
             jobs = selection.group_files([trap, crash], True)
+            jobs.append(selection.GameJob('Explicit override fixture', [trap], player_override=5))
             seen = []
             runner = backend.Runner(lambda line: None)
             def run(argv, cwd, **kwargs):
@@ -122,6 +206,7 @@ class PlayerChecks(unittest.TestCase):
                     args, _ = parser.parse_known_args(command)
                     self.assertIn('--players', command)
                     count = pb.operator_players(args)
+                    self.assertEqual(args.override_players, count == 5)
                     args.output.mkdir(parents=True)
                     config = args.output / 'game.toml'
                     config.write_text('[game]\nname="Fixture"\nexe="disc/fixture.exe"\nplayers=1\n')
@@ -142,8 +227,9 @@ class PlayerChecks(unittest.TestCase):
             stack.enter_context(mock.patch.dict(os.environ, {'WORKBENCH_PUBLIC_CACHE_ROOT': str(root/'cache'), 'WORKBENCH_PUBLIC_WORK_ROOT': str(root/'work')}))
             result = pinned_build.batch(jobs, prefs, root/'data', runner)
             self.assertEqual(result['state'], 'completed', result['games'])
-            self.assertEqual(seen, [2, 1])
-            self.assertEqual([g['player_metadata']['serial'] for g in result['games']], ['SLUS-00679', 'SCUS-94900'])
+            self.assertEqual(seen, [2, 1, 5])
+            self.assertEqual([g['player_metadata']['serial'] for g in result['games']], ['SLUS-00679', 'SCUS-94900', 'SLUS-00679'])
+            self.assertEqual(result['games'][2]['player_metadata']['source'], 'manual override')
 
     def test_advanced_batch_uses_identified_counts(self):
         with tempfile.TemporaryDirectory() as tmp:

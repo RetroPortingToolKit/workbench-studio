@@ -1,4 +1,5 @@
 from pathlib import Path
+from dataclasses import replace
 import os
 import json
 import queue
@@ -107,6 +108,8 @@ class Studio:
         self.count.pack(side='left')
         ttk.Button(trayfooter, text='Add files', command=self.choose_files).pack(side='right')
         ttk.Button(trayfooter, text='Clear', command=self.clear_files).pack(side='right', padx=8)
+        self.player_controls = ttk.Frame(self.tray)
+        self.player_controls.grid(row=2, column=0, sticky='ew')
         footer = ttk.Frame(page)
         footer.grid(row=3, column=0, sticky='ew', pady=(24, 0))
         self.track = tk.Canvas(footer, width=36, height=36, background=self.colors['bg'], highlightthickness=0)
@@ -169,6 +172,9 @@ class Studio:
             self.refresh_selection()
 
     def refresh_selection(self):
+        overrides = {tuple(game.discs): game.player_override for game in self.jobs}
+        for child in self.player_controls.winfo_children():
+            child.destroy()
         self.tree.delete(*self.tree.get_children())
         for path in self.files:
             file = Path(path)
@@ -180,9 +186,22 @@ class Studio:
         self.ready = False
         try:
             self.jobs = selection.group_files(self.files, self.multiple.get())
+            for game in self.jobs:
+                game.player_override = overrides.get(tuple(game.discs))
             import player_metadata
-            player_metadata.identify(self.jobs, self.data_root)
+            player_metadata.identify(self.jobs, self.data_root, allow_unknown=True)
+            for game in self.jobs:
+                row = ttk.Frame(self.player_controls)
+                row.pack(fill='x', padx=8, pady=2)
+                count = game.players if game.players is not None else 'unavailable'
+                ttk.Label(row, text=f'{game.name} - Players: {count}').pack(side='left')
+                choice = ttk.Combobox(row, values=['Auto', *range(1, 9)], state='readonly', width=5)
+                choice.set(str(game.player_override) if game.player_override is not None else 'Auto')
+                choice.pack(side='right')
+                choice.bind('<<ComboboxSelected>>', lambda event, job=game, widget=choice: self.override_players(job, widget.get()))
             if self.jobs:
+                if any(game.players is None for game in self.jobs):
+                    raise ValueError('Player count unavailable: choose 1-8 or reselect files to retry Auto')
                 if not self.preferences.output_folder:
                     raise ValueError('Choose a default output folder in Settings')
                 if not self.preferences.skip_bios and (not any((Path(p).is_file() for p in self.preferences.bios_files))):
@@ -197,6 +216,10 @@ class Studio:
         except (ValueError, OSError) as error:
             self.status.set(str(error))
         self.draw_build()
+
+    def override_players(self, game, value):
+        game.player_override = None if value == 'Auto' else int(value)
+        self.refresh_selection()
 
     def draw_build(self, focused=False):
         c = self.colors
@@ -343,7 +366,7 @@ class Studio:
         self.runner = backend.Runner(lambda line: self.messages.put(('log', line)))
         self.draw_build()
         runner = self.runner
-        jobs = list(self.jobs)
+        jobs = [replace(game) for game in self.jobs]
         preferences = self.preferences
 
         def work():

@@ -36,6 +36,7 @@ class BuildOptions:
     bios_regions: dict[str, str] = dataclasses.field(default_factory=dict)
     bios_files: list[str] = dataclasses.field(default_factory=list)
     sbi_associations: dict[str, str] = dataclasses.field(default_factory=dict)
+    players: int | None = None
 
 class Cancelled(RuntimeError):
     pass
@@ -168,6 +169,9 @@ def snapshot_source(kind, ref, custom, cache, destination, runner):
     return record
 
 def validate(options):
+    from selection import validate_players
+    if options.players is not None:
+        validate_players(options.players)
     if not options.discs:
         raise ValueError('Choose at least one disc image')
     for item in options.discs:
@@ -248,6 +252,11 @@ def stage_disc(cue, destination):
 
 def build(options, data_root, runner, *, prepared_sources=None, prepared_runtime=None):
     validate(options)
+    if options.players is None:
+        import artwork
+        import player_metadata
+        Path(data_root).mkdir(parents=True, exist_ok=True)
+        options.players = player_metadata.resolve(artwork.detect(options.discs[0], data_root), data_root)['players']
     if shutil.which('pwsh') is None:
         raise ValueError('Advanced source builds require PowerShell 7 (pwsh). The included supported versions do not require it.')
     output = Path(options.output).expanduser().resolve()
@@ -311,6 +320,7 @@ def build(options, data_root, runner, *, prepared_sources=None, prepared_runtime
             runner.run([sys.executable, toolkit / 'verify_disc_set.py', *probes, '--json-out', job / 'disc-set.json'], job, env=env)
         name = identity.get('display_name') or identity.get('volume_id') or Path(options.discs[0]).stem
         command = ['pwsh', '-NoProfile', '-File', setup, '-Disc', discs[0], '-Name', name, '-Dir', job / 'title', '-Yes', '-NoGenerate', '-NoBuild', '-NoGithub', '-NoCi', '-NoFetchBoxart', '-NoNetplay', '-EnableRecompUi', '-NoWizard', '-PsxrecompSourceRoot', core, '-RecompUiSourceRoot', job / 'ui', '-ToolkitRoot', toolkit]
+        command += ['-Players', str(options.players)]
         (job / 'title').mkdir()
         runner.run(command, job, env=env)
         projects = [p for p in (job / 'title').iterdir() if (p / 'game.toml').is_file()]
@@ -321,6 +331,7 @@ def build(options, data_root, runner, *, prepared_sources=None, prepared_runtime
             discs = [stage_disc(p, title / 'disc' / str(i)) for i, p in enumerate(discs, 1)]
         if len(discs) > 1 or options.portable:
             refresh = [sys.executable, toolkit / 'probe_disc.py', discs[0], '--write-game-toml', title / 'game.toml', '--disc-rel', discs[0].relative_to(title).as_posix() if options.portable else str(discs[0]), '--out-dir', 'disc', '--display-name', name]
+            refresh += ['--players', str(options.players)]
             for disc in discs[1:]:
                 refresh += ['--extra-disc', disc.relative_to(title).as_posix() if options.portable else str(disc)]
             runner.run(refresh, title, env=env)
@@ -364,6 +375,8 @@ def build_batch(jobs, preferences, data_root, runner):
     if getattr(preferences, 'core_pin', ''):
         import pinned_build
         return pinned_build.batch(jobs, preferences, data_root, runner)
+    import player_metadata
+    player_metadata.identify(jobs, data_root, runner.log)
     if shutil.which('pwsh') is None:
         raise ValueError('Advanced source builds require PowerShell 7 (pwsh). The included supported versions do not require it.')
     bios = next((p for p in preferences.bios_files if Path(p).is_file()), '')
@@ -372,6 +385,7 @@ def build_batch(jobs, preferences, data_root, runner):
     options = []
     for game in jobs:
         item = BuildOptions(discs=[str(p) for p in game.discs], bios=bios, output=preferences.output_folder, sbi=[str(p) for p in game.sbi.values()], core_ref=preferences.core_ref, ui_ref=preferences.ui_ref, custom_core=preferences.custom_core, custom_ui=preferences.custom_ui, portable=preferences.portable, skip_bios=preferences.skip_bios, pgo=preferences.pgo, diagnostics=preferences.diagnostics, compiler_optimization=preferences.compiler_optimization, lto=preferences.lto, startup_checks=preferences.startup_checks, bios_files=list(preferences.bios_files), bios_regions=dict(preferences.bios_regions), sbi_associations={str(disc): str(sbi) for disc, sbi in game.sbi.items()})
+        item.players = game.players
         validate(item)
         options.append(item)
     root = Path(data_root).expanduser().resolve() / 'history'

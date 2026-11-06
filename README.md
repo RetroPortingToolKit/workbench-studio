@@ -8,6 +8,8 @@ Download [the Windows preview ZIP](dist/WorkbenchStudio-Windows-preview.zip) and
 
 The main screen supports one game or a batch. Multi-disc games stay grouped by playlist. Matching SBI files can be selected with discs. Completed games appear directly in the chosen output folder. Completed cards are blue, failed cards red; current-game and total timers remain separate. Cancelling stops the current process tree and queued work.
 
+Player counts are identified from the disc's boot serial. Matched kit declarations take priority; other discs use the bundled serial catalogue or a cached [PSX Data Center](https://psxdatacenter.com/) metadata lookup. The identified count appears on each game card and controls the generated launcher slots. No player count is guessed when metadata is unavailable. More than two players also requires title-supported multitap and enabling it in the launcher. See [Quickstart](docs/QUICKSTART.txt) for existing one-player builds.
+
 Settings holds BIOS files, output location, source versions and Advanced options: portable output, fast boot, compiler optimization, LTO, PGO, diagnostics and optional startup checks. Startup checks are off by default. Source and compiler payloads are obtained only after Build. Optional artwork can be fetched when a game is detected.
 
 The included supported core version is fetched from its public repository. The matching launcher build sources, module and SDL are included with checksums and licence notices. That launcher revision is supplied locally rather than fetched from an unavailable remote revision. See [version identities](docs/VERSIONS.json) and [dependency inputs](DEPENDENCIES.json).

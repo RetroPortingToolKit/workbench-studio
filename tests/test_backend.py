@@ -208,6 +208,7 @@ class BuilderChecks(unittest.TestCase):
                     active.cancel()
                 return {"output": options.output}
             with mock.patch.object(backend, "snapshot_source", side_effect=snapshot), \
+                 mock.patch('player_metadata.resolve', return_value={'serial': 'SLUS-00001', 'players': 2, 'source': 'authored fixture'}), \
                  mock.patch.object(backend, "build", side_effect=game_build), \
                  mock.patch("buildtools.prepare", return_value={"receipt": {}}):
                 with self.assertRaises(backend.Cancelled):

@@ -180,6 +180,8 @@ class Studio:
         self.ready = False
         try:
             self.jobs = selection.group_files(self.files, self.multiple.get())
+            import player_metadata
+            player_metadata.identify(self.jobs, self.data_root)
             if self.jobs:
                 if not self.preferences.output_folder:
                     raise ValueError('Choose a default output folder in Settings')

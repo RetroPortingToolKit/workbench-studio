@@ -617,6 +617,10 @@ int main(int argc, char **argv) {
                                : state == "active"  ? "Building"
                                                     : "Queued";
           detail += "   " + duration(g.value("elapsed_seconds", 0.0));
+          if (g.contains("players") && g["players"].is_number_integer()) {
+            int count = g["players"].get<int>();
+            detail += "  |  " + std::to_string(count) + (count == 1 ? " player" : " players");
+          }
           d->AddText({pos.x + 72, pos.y + 43}, color(149, 173, 203),
                      detail.c_str());
           ImGui::PopStyleColor(2);

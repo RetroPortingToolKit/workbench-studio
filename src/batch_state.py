@@ -7,7 +7,7 @@ class BatchState:
         self.started = clock()
         self.finished = None
         self.current = None
-        self.games = [dict(id=index, name=job.name, state='queued', elapsed_seconds=0.0) for index, job in enumerate(jobs)]
+        self.games = [dict(id=index, name=job.name, players=job.players, player_metadata=job.player_metadata, state='queued', elapsed_seconds=0.0) for index, job in enumerate(jobs)]
         self.publish('batch_started')
 
     def publish(self, kind, **extra):

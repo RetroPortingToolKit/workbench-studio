@@ -29,6 +29,8 @@ class DeliveryChecks(unittest.TestCase):
             required=('compiler_options.py','delivery.py','batch_state.py','native_bridge.py','toolchain-pin.toml','pin_entry.py','asset_preflight.py','pin_builder/workbench_child.py','pin_builder/workbench_progress.py','pin_builder/source_snapshot.py','pin_builder/lean_boot_gate.py','pin_builder/overlay_compile_check.py','pin_builder/product_residue.py')
             for relative in required:
                 path=root/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('# fixture')
+            for relative in ('player_metadata.py', 'compatibility/players.json'):
+                path=root/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_text('# fixture')
             with self.assertRaisesRegex(RuntimeError,'LGPL-2.1.txt'):support_files.check(root)
             license_path=root/'pin_builder/licenses/LGPL-2.1.txt';license_path.parent.mkdir();shutil.copy2(APP/'pin_builder/licenses/LGPL-2.1.txt',license_path)
             self.assertEqual(support_files.check(root)['lgpl_sha256'],support_files.LICENSE_SHA256)

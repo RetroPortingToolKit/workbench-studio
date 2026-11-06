@@ -51,7 +51,7 @@ class BatchTests(unittest.TestCase):
                     raise ValueError('one game failed')
                 payload=Path(options.output)/'build-release';payload.mkdir(parents=True);(payload/'Game.exe').write_bytes(b'fixture program')
                 return {'output':str(payload)}
-            with mock.patch.object(backend,'snapshot_source',side_effect=snapshot),mock.patch('buildtools.prepare',return_value={'receipt':{}}),mock.patch.object(backend,'build',side_effect=build):
+            with mock.patch('player_metadata.resolve',return_value={'serial':'SLUS-00001','players':2,'source':'authored fixture'}),mock.patch.object(backend,'snapshot_source',side_effect=snapshot),mock.patch('buildtools.prepare',return_value={'receipt':{}}),mock.patch.object(backend,'build',side_effect=build):
                 if cancel:
                     with self.assertRaises(backend.Cancelled):backend.build_batch(jobs,prefs,root/'data',runner)
                 else:backend.build_batch(jobs,prefs,root/'data',runner)

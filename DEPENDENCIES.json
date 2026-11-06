@@ -1,8 +1,8 @@
 {
   "checked_distribution": {
     "file": "dist/WorkbenchStudio-Windows-preview.zip",
-    "bytes": 26090408,
-    "sha256": "a0007f4897d3dc3d7147c24039475bfe0318c4b19ccd80549bd8bc8ddbffe143"
+    "bytes": 26089473,
+    "sha256": "c40f6d1d73f5706fda32e4912d88272344c70e41584452994007ef92617f19bc"
   },
   "python_runtime": {
     "version": "3.14.3",
@@ -29,7 +29,7 @@
   },
   "source_files": {
     "CMakeLists.txt": "3a8ecbfb1b144fa17289f4e0e7b81d687864f2984f515481cf1b6af50ce872b1",
-    "main.cpp": "6cfbc7f481b5992b8946506a2e0c691cfd1e870d1bff5262041fc9f3faea7a57",
+    "main.cpp": "3ef40026f5a81161a2008776f470622e09ea39535bf7c688bad437942c3cfd63",
     "process_runner.cpp": "9ffc03c24567f42b00a16fcf7f6f2e8c534fa4c0f13a4d27c2d89c1f96e87232",
     "process_runner.h": "c970c8535bae0f2d79fc53b03716d6fa872d44aa56f08d5abf1089730a300833",
     "vendor/nlohmann/json.hpp": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6"

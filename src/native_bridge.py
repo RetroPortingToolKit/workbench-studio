@@ -29,13 +29,15 @@ def main():
         return
     jobs = group_files(request['files'], request.get('multiple', False))
     if action == 'selection':
-        emit(dict(event='selection', games=[dict(id=i, name=g.name, discs=[str(p) for p in g.discs], state='queued', elapsed_seconds=0) for i, g in enumerate(jobs)]))
+        import player_metadata
+        player_metadata.identify(jobs, root)
+        emit(dict(event='selection', games=[dict(id=i, name=g.name, discs=[str(p) for p in g.discs], players=g.players, player_metadata=g.player_metadata, state='queued', elapsed_seconds=0) for i, g in enumerate(jobs)]))
         return
     if action == 'artwork':
         import artwork
         for index, game in enumerate(jobs):
             try:
-                serial = artwork.detect(game.discs[0])
+                serial = artwork.detect(game.discs[0], root)
                 image = artwork.cover(serial, root) if serial else None
                 emit(dict(event='artwork', index=index, serial=serial, path=str(image) if image else ''))
             except Exception:

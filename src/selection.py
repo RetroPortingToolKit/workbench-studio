@@ -9,6 +9,13 @@ class GameJob:
     discs: list[Path]
     playlist: Path | None = None
     sbi: dict[Path, Path] = field(default_factory=dict)
+    players: int | None = None
+    player_metadata: dict = field(default_factory=dict)
+
+def validate_players(players):
+    if type(players) is not int or not 1 <= players <= 8:
+        raise ValueError('Players must be a whole number from 1 to 8')
+    return players
 
 def playlist_discs(path):
     discs = []

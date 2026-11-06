@@ -4,9 +4,10 @@ import json
 import re
 import urllib.request
 import probe_disc
+import tempfile
 COVER_BASE = 'https://raw.githubusercontent.com/xlenore/psx-covers/main/covers/default/'
 
-def detect(image):
+def detect(image, data_root=None):
     image = Path(image)
     if image.suffix.lower() == '.chd':
         import art_chd
@@ -15,6 +16,11 @@ def detect(image):
         if not library.is_file():
             return ''
         return read_chd_boot_serial_psx_chd(art_chd, image, library) or ''
+    if image.suffix.lower() == '.iso':
+        with tempfile.TemporaryDirectory(dir=data_root) as folder:
+            cue = Path(folder) / 'identity.cue'
+            cue.write_text(f'FILE "{image.resolve().as_posix()}" BINARY\n  TRACK 01 MODE1/2048\n    INDEX 01 00:00:00\n', encoding='utf-8')
+            return probe_disc.probe(cue, identity_only=True).serial or ''
     return probe_disc.probe(image, identity_only=True).serial or ''
 
 def cover(serial, data_root):

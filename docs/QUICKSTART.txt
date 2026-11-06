@@ -3,6 +3,10 @@ Workbench Studio - Windows preview
 Extract the complete folder, then open Workbench Studio.cmd.
 Open Settings and choose your BIOS files and output folder. Choose game images or playlists, then BUILD. Add matching SBI files in the same selection.
 
+Studio reads the disc boot serial and identifies its player count from matched kit metadata, the bundled serial catalogue or PSX Data Center. Counts are shown on the game cards automatically. A first lookup for an uncatalogued serial needs internet; successful lookups are cached. Missing or unrecognised player metadata is reported before building rather than guessed. Games with more than two players need multitap support; enable multitap in the generated game's launcher. Assign distinct controllers to its player tabs.
+
+Rebuild affected games with this Studio version to apply the identified count. For an existing two-player build from the included supported versions, a temporary workaround is to close the game and change players = 1 to players = 2 under [game] in the delivered game.toml beside the executable. Restart and assign the controllers. This does not make a single-player game support multiplayer.
+
 Git for Windows must be installed and available on PATH. Advanced source builds also require PowerShell 7 (pwsh); the included supported versions do not. Source and compiler downloads happen after BUILD. The included launcher source and module use the selected compatible core version. First build needs internet and several GB of free disk space.
 
 Completed games appear directly in the output folder. Logs and settings are under public-studio-data. Build caches are in %LOCALAPPDATA%\RPT. Thin games use its persistent compiler cache; keep that cache while using those games. Portable builds include their compiler and media. Startup checks are off by default.

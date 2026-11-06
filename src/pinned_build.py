@@ -71,9 +71,11 @@ def batch(jobs, preferences, data_root, runner):
     import probe_disc
     import support_files
     support_files.check()
+    import player_metadata
+    player_metadata.identify(jobs, data_root, runner.log)
     available_bios = next((path for path in preferences.bios_files if Path(path).is_file()), '')
     for game in jobs:
-        validate(BuildOptions(discs=[str(path) for path in game.discs], bios=available_bios, output=preferences.output_folder, sbi=[str(path) for path in game.sbi.values()], skip_bios=preferences.skip_bios))
+        validate(BuildOptions(discs=[str(path) for path in game.discs], bios=available_bios, output=preferences.output_folder, sbi=[str(path) for path in game.sbi.values()], skip_bios=preferences.skip_bios, players=game.players))
     pin_path = Path(preferences.core_pin).expanduser().resolve()
     pin = pb.load_pin(pin_path)
     if not jobs:
@@ -195,6 +197,7 @@ def batch(jobs, preferences, data_root, runner):
                 bios_candidates = batch / f'bios-{index}.json'
                 bios_candidates.write_text(json.dumps(preferences.bios_files), encoding='utf-8')
                 argv = [python, '-u', '-B', Path(__file__).with_name('pin_entry.py'), 'build', '--pin', selected_pin, '--bios', bios, '--bios-candidates', bios_candidates, '--output', output, '--source-repo', core, '--ui-repo', ui, '--toolchain-pin', Path(__file__).with_name('toolchain-pin.toml'), '--toolchain', toolchain, '--overlay-archives', downloads, '--kits-root', catalog, '--run-root', work_root, '--input-mode', 'portable' if preferences.portable else 'thin', '--platform', 'windows-x64']
+                argv += ['--players', str(game.players)]
                 if ui_file:
                     argv += ['--ui', ui_file]
                 if preferences.skip_bios:

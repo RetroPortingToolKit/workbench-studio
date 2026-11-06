@@ -43,6 +43,7 @@ def main():
     shutil.copy2(root/'src/versions/sdl-install/bin/SDL3.dll', destination/'SDL3.dll')
     shutil.copy2(root/'docs/QUICKSTART.txt', destination/'QUICKSTART.txt')
     shutil.copy2(root/'LICENSE', destination/'LICENSE')
+    shutil.copy2(root/'PERMISSIONS.md', destination/'PERMISSIONS.md')
     (destination/'Workbench Studio.cmd').write_text('@echo off\nset "PYTHONDONTWRITEBYTECODE=1"\nstart "" /D "%~dp0" "%~dp0Workbench Studio.exe" %*\n', encoding='utf-8')
     members = {p.relative_to(destination).as_posix(): digest(p) for p in sorted(destination.rglob('*')) if p.is_file()}
     (destination/'SHA256SUMS.txt').write_text(''.join(value+'  '+name+'\n' for name,value in members.items()), encoding='utf-8')

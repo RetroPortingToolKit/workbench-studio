@@ -386,8 +386,11 @@ def select_disc(settings_text, index):
 
 def boot_name_serial(name):
     stem = name.replace('\\', '/').split('/')[-1].split(';')[0].strip()
-    found = re.match('([A-Za-z]{4})_(\\d{3})\\.(\\d{2})$', stem)
-    return f'{found.group(1)}-{found.group(2)}{found.group(3)}'.upper() if found else stem.upper()
+    match = re.fullmatch(r'([A-Za-z]{4})([A-Za-z]?)[_-]?(\d{3})\.?(\d{2})', stem)
+    if match and (not match.group(2) or match.group(1).upper() in ("SCUS", "SLUS", "SCES", "SLES", "SCED", "SLED", "SCPS", "SLPS", "SLPM", "SCPM", "ESPM")):
+        return f'{match.group(1)}-{match.group(3)}{match.group(4)}'.upper()
+    return stem.upper()
+
 
 def mounted_serial(log_text):
     found = re.search('disc region \\S+ \\(serial ([^)]+)\\)', log_text)

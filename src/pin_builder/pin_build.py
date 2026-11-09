@@ -316,10 +316,25 @@ def find_dir_entry(directory, name):
 
 def normalize_boot_serial(boot):
     stem = boot.replace('\\', '/').split('/')[-1].split(';')[0].strip()
-    match = re.match('([A-Za-z]{4})_(\\d{3})\\.(\\d{2})$', stem)
-    if match:
-        return f'{match.group(1)}-{match.group(2)}{match.group(3)}'.upper()
+    match = re.fullmatch(r'([A-Za-z]{4})([A-Za-z]?)[_-]?(\d{3})\.?(\d{2})', stem)
+    if match and (not match.group(2) or match.group(1).upper() in ("SCUS", "SLUS", "SCES", "SLES", "SCED", "SLED", "SCPS", "SLPS", "SLPM", "SCPM", "ESPM")):
+        return f'{match.group(1)}-{match.group(3)}{match.group(4)}'.upper()
     return stem.upper()
+
+
+def require_boot_serial_contract(fw, boot_names):
+    """Do not pair newly canonicalized boot names with an older reader."""
+    unusual = any(re.fullmatch(r'[A-Za-z]{5}[_-]?\d{3}\.?\d{2}',
+        str(name).replace('\\', '/').split('/')[-1].split(';')[0].strip()) for name in boot_names)
+    if not unusual:
+        return
+    for relative in ('runtime/include/disc_identity.h', 'runtime/include/disc_roster.h'):
+        header = Path(fw) / relative
+        if header.is_file() and re.search(r'#define\s+PSX_DISC_BOOT_SERIAL_VERSION\s+2\b', header.read_text(encoding='utf-8')):
+            return
+    raise BuildStop("This disc's boot filename requires a runtime with compatible serial normalization. "
+                    "Select a source version that declares PSX_DISC_BOOT_SERIAL_VERSION 2.")
+
 
 def read_chd_disc_facts(chd, psx_chd, lib_path):
     try:
@@ -414,6 +429,8 @@ def preflight_kit_match(selected, chdman, kit_roots, explicit_kit, receipt, fw=N
         serials.append(serial)
     if not serials:
         return None
+    if fw is not None:
+        require_boot_serial_contract(fw, [facts.get("boot", "") for facts in facts_by_disc.values()])
     diagnostics = []
     try:
         kit = find_kit(serials, kit_roots, explicit_kit, diagnostics)
@@ -1721,6 +1738,11 @@ def _build_workspace(args):
             known = identity_by_path.get(str(Path(p)))
             identities.append(known if known is not None else baseline_workflow.disc_boot_identity(p))
         receipt.update(selected_disc_identities=identities, selected_discs=list(map(str, discs)))
+        require_boot_serial_contract(fw, [item["path"] for item in identities])
+        for item in identities:
+            normalized = normalize_boot_serial(item["path"])
+            if re.fullmatch(r"[A-Za-z]{4}-\d{5}", normalized):
+                item["serial"] = normalized
         serials = [p['serial'] for p in identities]
         for path, item in zip(discs, identities):
             if not item['serial']:

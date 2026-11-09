@@ -56,3 +56,4 @@ built with it, or their updates, features, or game content, including early acce
 Matthew Stanley has authority from the relevant copyright holders to grant
 these permissions for the project's PolyForm-covered code. Third-party
 components and code explicitly licensed under other terms retain those terms.
+Optional startup checks remove previous run reports before starting the kit, so a recent old report cannot substitute for fresh frames.

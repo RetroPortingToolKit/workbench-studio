@@ -168,6 +168,8 @@ def kit_exe_start(kit, exe_name, disc, bios, env, output, receipt, name='b4-kit-
         receipt.setdefault('commands', []).append(command)
         own = output / (name + '-host')
         start_env = pb.host_start_environment({key: value for key, value in env.items() if not key.startswith('PSX')}, own) | forced
+        for folder in (kit, product.parent):
+            (folder / RUN_REPORT).unlink(missing_ok=True)
         began = time.time()
         code, text = start_setup_program(executable, kit, start_env, log, KIT_START_SECONDS, arguments=argv[1:])
         command['exit_code'] = code

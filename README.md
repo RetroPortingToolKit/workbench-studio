@@ -56,3 +56,4 @@ built with it, or their updates, features, or game content, including early acce
 Matthew Stanley has authority from the relevant copyright holders to grant
 these permissions for the project's PolyForm-covered code. Third-party
 components and code explicitly licensed under other terms retain those terms.
+Boot filenames with an extra letter after a known territory prefix are normalized consistently. Such names require a selected runtime declaring compatible serial normalization; ordinary names retain older-runtime support.
